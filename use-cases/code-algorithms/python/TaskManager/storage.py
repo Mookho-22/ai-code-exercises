@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 from models import Task, TaskPriority, TaskStatus
+import csv
 
 class TaskEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -56,6 +57,27 @@ class TaskStorage:
                             self.tasks[task.id] = task
             except Exception as e:
                 print(f"Error loading tasks: {e}")
+
+    def export_tasks_to_csv(self, filename="tasks.csv"):
+        try:
+            with open(filename, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                # Write header
+                writer.writerow(["ID", "Title", "Description", "Status", "Priority", "Due Date"])
+                # Write task rows
+                for task in self.tasks.values():
+                    writer.writerow([
+                        task.id,
+                        task.title,
+                        task.description,
+                        task.status.value,
+                        task.priority.value,
+                        task.due_date.isoformat() if task.due_date else ""
+                    ])
+            print(f"Tasks exported successfully to {filename}")
+        except Exception as e:
+            print(f"Error exporting tasks to CSV: {e}")
+
 
     def save(self):
         try:

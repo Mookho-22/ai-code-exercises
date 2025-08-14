@@ -1,16 +1,37 @@
-import argparse
 from datetime import datetime, timedelta
 
 from models import TaskPriority, Task, TaskStatus
 from storage import TaskStorage
 
-
 class TaskManager:
+    """
+    Manages task creation, retrieval, updating, deletion, and statistics.
+    Acts as the main interface between CLI/user commands and persistent storage.
+
+    Attributes:
+        storage (TaskStorage): Handles loading, saving, and querying tasks from JSON storage.
+    """
+    
     def __init__(self, storage_path="tasks.json"):
         self.storage = TaskStorage(storage_path)
 
     def create_task(self, title, description="", priority_value=2,
-                   due_date_str=None, tags=None):
+                   due_date_str=None, tags=None):  
+        """
+        Create a new task and save it.
+
+        Args:
+            title (str): Title of the task.
+            description (str, optional): Detailed description. Defaults to "".
+            priority_value (int, optional): Priority level (1=LOW, 2=MEDIUM, 3=HIGH, 4=URGENT). Defaults to 2.
+            due_date_str (str, optional): Due date in 'YYYY-MM-DD' format. Defaults to None.
+            tags (list[str], optional): List of tags for categorization. Defaults to None.
+
+        Returns:
+            str | None: ID of the created task if successful, None if date format is invalid.
+        """
+        
+    
         priority = TaskPriority(priority_value)
         due_date = None
         if due_date_str:
@@ -68,6 +89,17 @@ class TaskManager:
         return self.storage.get_task(task_id)
 
     def add_tag_to_task(self, task_id, tag):
+        """
+        Add a tag to a task's tag list if not already present.
+
+        Args:
+            task_id (str): Task ID.
+            tag (str): Tag string to add.
+
+        Returns:
+            bool: True if tag added or already present, False if task not found.
+        """
+
         task = self.storage.get_task(task_id)
         if task:
             if tag not in task.tags:
@@ -116,3 +148,29 @@ class TaskManager:
             "completed_last_week": completed_recently
         }
 
+    def export_tasks(self, filename="tasks.csv"):
+        self.storage.export_tasks_to_csv(filename)
+
+    def abandon_old_tasks(self):
+        """
+        Automatically mark overdue tasks as ABANDONED if:
+        - Not DONE or ABANDONED already
+        - Priority is not HIGH or URGENT
+        - Overdue by more than 7 days
+
+        Returns:
+            int: Number of tasks marked as abandoned.
+        """
+        count = 0
+        now = datetime.now()
+        for task in self.storage.get_all_tasks():
+            if (task.status != TaskStatus.DONE and
+                task.status != TaskStatus.ABANDONED and
+                task.priority not in [TaskPriority.HIGH, TaskPriority.URGENT] and
+                task.due_date and
+                (now - task.due_date).days > 7):
+
+                task.status = TaskStatus.ABANDONED
+                count += 1
+        self.storage.save()
+        return count

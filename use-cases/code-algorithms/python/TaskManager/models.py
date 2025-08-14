@@ -9,11 +9,14 @@ class TaskPriority(Enum):
     HIGH = 3
     URGENT = 4
 
+
 class TaskStatus(Enum):
     TODO = "todo"
     IN_PROGRESS = "in_progress"
     REVIEW = "review"
     DONE = "done"
+    ABANDONED = "abandoned"  # <-- New status added
+
 
 class Task:
     def __init__(self, title, description="", priority=TaskPriority.MEDIUM,

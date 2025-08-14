@@ -1,4 +1,3 @@
-# task_manager/cli.py
 import argparse
 from datetime import datetime
 
@@ -11,7 +10,8 @@ def format_task(task):
         TaskStatus.TODO: "[ ]",
         TaskStatus.IN_PROGRESS: "[>]",
         TaskStatus.REVIEW: "[?]",
-        TaskStatus.DONE: "[✓]"
+        TaskStatus.DONE: "[✓]",
+        TaskStatus.ABANDONED: "[x]",  # <-- Added abandoned status
     }
 
     priority_symbol = {
@@ -31,6 +31,7 @@ def format_task(task):
         f"  Created: {task.created_at.strftime('%Y-%m-%d %H:%M')}"
     )
 
+
 def main():
     parser = argparse.ArgumentParser(description="Task Manager CLI")
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -45,14 +46,14 @@ def main():
 
     # List tasks command
     list_parser = subparsers.add_parser("list", help="List all tasks")
-    list_parser.add_argument("-s", "--status", help="Filter by status", choices=["todo", "in_progress", "review", "done"])
+    list_parser.add_argument("-s", "--status", help="Filter by status", choices=["todo", "in_progress", "review", "done", "abandoned"])
     list_parser.add_argument("-p", "--priority", help="Filter by priority", type=int, choices=[1, 2, 3, 4])
     list_parser.add_argument("-o", "--overdue", help="Show only overdue tasks", action="store_true")
 
     # Update task commands
     update_status_parser = subparsers.add_parser("status", help="Update task status")
     update_status_parser.add_argument("task_id", help="Task ID")
-    update_status_parser.add_argument("status", help="New status", choices=["todo", "in_progress", "review", "done"])
+    update_status_parser.add_argument("status", help="New status", choices=["todo", "in_progress", "review", "done", "abandoned"])
 
     update_priority_parser = subparsers.add_parser("priority", help="Update task priority")
     update_priority_parser.add_argument("task_id", help="Task ID")
@@ -79,6 +80,12 @@ def main():
     delete_parser.add_argument("task_id", help="Task ID")
 
     stats_parser = subparsers.add_parser("stats", help="Show task statistics")
+
+    export_parser = subparsers.add_parser("export", help="Export tasks to CSV")
+    export_parser.add_argument("filename", help="Output CSV filename", nargs="?", default="tasks.csv")
+
+    # New auto-abandon command
+    abandon_parser = subparsers.add_parser("auto-abandon", help="Mark old overdue tasks as abandoned")
 
     args = parser.parse_args()
     task_manager = TaskManager()
@@ -159,8 +166,17 @@ def main():
         print(f"Overdue tasks: {stats['overdue']}")
         print(f"Completed in last 7 days: {stats['completed_last_week']}")
 
+    elif args.command == "export":
+        task_manager.export_tasks(args.filename)
+        print(f"Tasks exported to {args.filename}")
+
+    elif args.command == "auto-abandon":
+        count = task_manager.abandon_old_tasks()
+        print(f"{count} task(s) were marked as abandoned.")
+
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()
